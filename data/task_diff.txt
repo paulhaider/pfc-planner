@@ -1,0 +1,4 @@
+Left and Right task differentiation:
+
+L for the blue ball
+R for the red ball
