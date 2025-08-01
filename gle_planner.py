@@ -52,56 +52,6 @@ class GLEPlanner(GLEAbstractNet, torch.nn.Module):
         # Scale the error by beta
         return beta * e
 
-def evaluate_model(model, train_loader, all_image_data):
-    print("\n--- Demonstration of Inference ---")
-    model.eval()
-    with torch.no_grad():
-        print("Evaluating on training data:")
-        for i, (images, true_trajectory, true_choice_idx) in enumerate(train_loader):
-            for k in range(len(all_image_data)):
-                single_image = images[k].unsqueeze(0) # Get one image from batch and add batch dim
-                single_true_trajectory = true_trajectory[k]
-                single_true_choice_idx = true_choice_idx[k]
-
-                # Get the corresponding original item from all_image_data
-                original_item_data = all_image_data[k] # This is safe since batch_size is full dataset and shuffle is applied to `all_image_data` once.
-
-                # Make predictions for the single image
-                for _ in range(20):
-                    output = model(single_image)
-
-                predicted_trajectory_tensor, pred_choice_logits = output[:, :len(single_true_trajectory)], output[:, len(single_true_trajectory):]
-                predicted_trajectory = predicted_trajectory_tensor.squeeze(0).cpu().numpy() # Remove batch dim, to numpy
-
-                _, predicted_choice_idx = torch.max(pred_choice_logits, 1)
-                predicted_choice = 'left' if predicted_choice_idx.item() == 0 else 'right'
-
-                true_choice = 'left' if single_true_choice_idx.item() == 0 else 'right'
-
-                print(f"\n--- Input Image: {os.path.basename(original_item_data['image_path'])} ---")
-                print(f"Initial Angle (Hardcoded): {original_item_data['initial_angle']}°")
-                print(f"Target Final Angle (from filename): {original_item_data['target_final_angle']}°")
-                print(f"Calculated Angle Difference: {original_item_data['angle_difference']}°")
-                print(f"True Choice: {true_choice}")
-                print(f"Predicted Choice (Left/Right): {predicted_choice}")
-
-                # Compare predicted and true trajectories
-                print(f"True Trajectory (first 5 points): {single_true_trajectory.cpu().numpy()[:5]}")
-                print(f"Predicted Trajectory (first 5 points): {predicted_trajectory[:5]}")
-
-                # Optional: You could plot these trajectories to visualize the fit
-                import matplotlib.pyplot as plt
-                plt.figure()
-                plt.plot(utils.rad2deg(single_true_trajectory.cpu().numpy()), label='True Trajectory')
-                plt.plot(utils.rad2deg(predicted_trajectory), label='Predicted Trajectory')
-                plt.title(f"Trajectory for {os.path.basename(original_item_data['image_path'])}")
-                plt.xlabel("Time Step")
-                plt.ylabel("Elbow Angle (rad)")
-                plt.legend()
-                plt.savefig(f"./results/{os.path.basename(original_item_data['image_path']).removesuffix('.bmp')}_trajectory.png")
-                plt.show()
-                plt.close()  # Close the plot to free memory
-
 # --- Main Execution ---
 if __name__ == "__main__":
     print("Starting GLE Planner for Robotic Arm...")
@@ -197,9 +147,10 @@ if __name__ == "__main__":
     print("\nTraining finished.")
 
     # --- Save the model ---
-    MODEL_SAVE_PATH = 'trained_gle_planner.pth' # Choose a meaningful file name
+    MODEL_SAVE_PATH = './models/trained_gle_planner.pth' # Choose a meaningful file name
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
     print(f"Model saved to {MODEL_SAVE_PATH}")
 
     # --- Evaluate the model ---
+    from evaluate import evaluate_model
     evaluate_model(model, train_loader, all_image_data)

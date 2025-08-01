@@ -43,6 +43,7 @@ class ANNPlanner(nn.Module):
         self.choice_classifier = nn.Linear(conv_output_size, num_choices)
 
     def forward(self, x):
+        x = torch.unflatten(x, 1, (3, 100, 100))  # Ensure input is in correct shape
         features = self.conv_layers(x)
         predicted_trajectory = self.trajectory_regressor(features)
         choice_logits = self.choice_classifier(features)
@@ -114,7 +115,8 @@ if __name__ == "__main__":
     image_transform = transforms.Compose([
         transforms.Resize((100, 100)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Lambda(lambda x: x.view(-1))  # Flatten the image to a vector
     ])
 
     train_dataset = RobotArmDataset(all_image_data, transform=image_transform)
@@ -160,9 +162,9 @@ if __name__ == "__main__":
     print("\nTraining finished.")
 
     # --- Save the model ---
-    MODEL_SAVE_PATH = 'trained_ann_planner.pth' # Choose a meaningful file name
+    MODEL_SAVE_PATH = './models/trained_ann_planner.pth' # Choose a meaningful file name
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
     print(f"Model saved to {MODEL_SAVE_PATH}")
 
-    from gle_planner import evaluate_model
+    from evaluate import evaluate_model
     evaluate_model(model, train_loader, all_image_data)
