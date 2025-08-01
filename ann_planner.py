@@ -155,7 +155,7 @@ if __name__ == "__main__":
     print("\nTraining finished.")
 
     # --- Save the model ---
-    MODEL_SAVE_PATH = 'trained_gle_planner.pth' # Choose a meaningful file name
+    MODEL_SAVE_PATH = 'trained_ann_planner.pth' # Choose a meaningful file name
     torch.save(model.state_dict(), MODEL_SAVE_PATH)
     print(f"Model saved to {MODEL_SAVE_PATH}")
 
